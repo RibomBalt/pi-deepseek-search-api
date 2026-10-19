@@ -221,7 +221,7 @@ Expected: PASS.
 - Consumes: `createDeepSeekClient` from Task 2 and Pi `ExtensionAPI` / tool types from the declared peer dependency.
 - Produces: default extension function `deepseekWebExtension(pi: ExtensionAPI): void`; exactly two registered tools named `deepseek_search` and `deepseek_fetch`.
 
-- [ ] **Step 1: Add failing fake-ExtensionAPI tests**
+- [x] **Step 1: Add failing fake-ExtensionAPI tests**
 
 Build a test-local fake `ExtensionAPI` whose `registerTool` captures definitions, and a fake `ctx.modelRegistry.getApiKeyForProvider`. Test names, descriptions, schema-required fields, and handler call shape. For example:
 
@@ -234,16 +234,16 @@ it("registers the two native tools", () => {
 
 Add handler tests verifying it requests provider ID `deepseek` on invocation and uses the returned fake key only for an injected client request. Missing-key tests must assert a `/login deepseek` hint, zero fetch calls, and no credential-like value in output.
 
-- [ ] **Step 2: Run focused tests to verify they fail**
+- [x] **Step 2: Run focused tests to verify they fail**
 
 Run: `pnpm exec vitest run tests/deepseek-web.test.ts`
 Expected: FAIL because native tools are not registered yet.
 
-- [ ] **Step 3: Implement the extension and schemas**
+- [x] **Step 3: Implement the extension and schemas**
 
 Define TypeBox schemas for Search and Fetch. Enforce Search query non-empty after trimming and maximum 128 characters; enforce count integer 1–50; enforce optional `ori_question` length 1–128; accept optional `localization` string and `need_content` boolean. Enforce Fetch URL length at most 8192, valid URL parsing, protocol HTTP or HTTPS, a non-empty host, and no username/password. Register two tools with user-facing descriptions that label fetched webpage text as untrusted source material. In each handler, obtain the current key from `ctx.modelRegistry.getApiKeyForProvider("deepseek")`; when absent return a clear configuration error without calling fetch. Pass `signal` through to the client. Do not print/log credentials.
 
-- [ ] **Step 4: Complete registration and validation unit tests**
+- [x] **Step 4: Complete registration and validation unit tests**
 
 Test valid Search defaults and optional fields; whitespace-only query; 1 and 128 character queries; 129 character query; count 1, 50, 0, 51, and fractional count; invalid `ori_question` length; URL with HTTP and HTTPS; missing host, unsupported protocol, username/password, and 8193-character URL; missing API Key; API Key lookup once per tool call (not at module import); handler cancellation propagation; error output with no fake key; and that exactly two tools are registered. Each invalid input must reject before any fake network call.
 
