@@ -184,9 +184,9 @@ it.each([
     method: "search" as const,
     args: { query: "x" },
     payload: {
-      results: [{ title: "A", url: "https://a.test", snippet: "long", short_snippet: "short", site_name: "A", date: "2026-01-01", score: 0.9, authority: "high" }],
+      results: [{ title: "A", url: "https://a.test", snippet: "short", summary: "long", site_name: "A", date: "2026-01-01", rerank_score: 2.4, authority: 3 }],
     },
-    expected: /short/,
+    expected: /long/,
   },
   {
     name: "Fetch empty body",
@@ -206,7 +206,7 @@ it.each([
 });
 ```
 
-Also cover: all Search request options map to JSON; result with missing optional fields; Search `need_content: true` includes returned content; Fetch accepts response title/body; body length 30,000 is unchanged; body length 30,001 yields exactly 30,000 body characters plus the marker; HTTP JSON with `error.message`; HTTP JSON without it; HTTP non-JSON body; fetch rejection; AbortError; no retry (`fakeFetch` called once); and output/error strings never contain the test key. Use valid minimal JSON response fixtures and assert output structure without depending on unrelated whitespace.
+Also cover: all Search request options map to JSON; result with missing optional fields; Search `need_content: true` includes returned `content`; format the documented `summary` (long), `snippet` (short), `rerank_score`, `site_name`, `date`, and numeric `authority` fields; Fetch accepts response `title`/`content`; body length 30,000 is unchanged; body length 30,001 yields exactly 30,000 body characters plus the marker; HTTP JSON with `error.message`; HTTP JSON without it; HTTP non-JSON body; fetch rejection; AbortError; no retry (`fakeFetch` called once); and output/error strings never contain the test key. Use valid minimal JSON response fixtures and assert output structure without depending on unrelated whitespace.
 
 Run: `pnpm exec vitest run tests/deepseek-client.test.ts`
 Expected: PASS.
