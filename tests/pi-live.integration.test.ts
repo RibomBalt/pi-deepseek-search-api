@@ -11,6 +11,7 @@ type RpcEvent = {
   command?: string;
   success?: boolean;
   error?: string;
+  data?: { disposition?: string };
   toolName?: string;
   isError?: boolean;
   result?: { content?: Array<{ type?: string; text?: string }> };
@@ -59,19 +60,35 @@ describe("live Pi + DeepSeek integration", () => {
     let stdoutBuffer = "";
     let stderr = "";
     let spawnError: Error | undefined;
+    let markRunFinished!: () => void;
+    const runFinished = new Promise<void>((resolveRun) => { markRunFinished = resolveRun; });
+    const exitPromise = new Promise<{ code: number | null; signal: NodeJS.Signals | null }>((resolveExit) => {
+      child.once("close", (code, signal) => resolveExit({ code, signal }));
+    });
+
+    function collectEvent(line: string): void {
+      try {
+        const event = JSON.parse(line) as RpcEvent;
+        events.push(event);
+        if (
+          event.type === "agent_settled" ||
+          (event.type === "response" && event.command === "prompt" && (
+            event.success === false || event.data?.disposition === "handled"
+          ))
+        ) {
+          markRunFinished();
+        }
+      } catch {
+        // Non-event output is ignored; assertions below report missing RPC events.
+      }
+    }
 
     child.stdout.setEncoding("utf8");
     child.stdout.on("data", (chunk: string) => {
       stdoutBuffer += chunk;
       const lines = stdoutBuffer.split("\n");
       stdoutBuffer = lines.pop() ?? "";
-      for (const line of lines) {
-        try {
-          events.push(JSON.parse(line) as RpcEvent);
-        } catch {
-          // Non-event output is ignored; assertions below report missing RPC events.
-        }
-      }
+      for (const line of lines) collectEvent(line);
     });
     child.stderr.setEncoding("utf8");
     child.stderr.on("data", (chunk: string) => {
@@ -79,6 +96,8 @@ describe("live Pi + DeepSeek integration", () => {
       if (stderr.length > 20_000) stderr = stderr.slice(-20_000);
     });
     child.on("error", (error) => { spawnError = error; });
+    child.once("close", () => markRunFinished());
+    child.stdin.on("error", () => markRunFinished());
 
     const timer = setTimeout(() => child.kill("SIGTERM"), timeoutMs);
     try {
@@ -87,11 +106,11 @@ describe("live Pi + DeepSeek integration", () => {
         type: "prompt",
         message: "Call deepseek_search exactly once with query 'Pi package integration test'. Then call deepseek_fetch exactly once with url 'https://example.com'. Do not use other tools. After both calls, briefly report whether each returned data.",
       })}\n`);
-      child.stdin.end();
-
-      const exit = await new Promise<{ code: number | null; signal: NodeJS.Signals | null }>((resolveExit) => {
-        child.once("close", (code, signal) => resolveExit({ code, signal }));
-      });
+      await runFinished;
+      if (child.exitCode === null && child.signalCode === null && !child.stdin.destroyed && !child.stdin.writableEnded) {
+        child.stdin.end();
+      }
+      const exit = await exitPromise;
 
       if (spawnError) {
         throw new Error(`Could not start system Pi. Ensure pi is installed and on PATH. ${sanitize(spawnError.message)}`);
@@ -100,11 +119,7 @@ describe("live Pi + DeepSeek integration", () => {
         throw new Error(`System Pi exited with code ${String(exit.code)} (${String(exit.signal)}). ${sanitize(stderr)}`);
       }
       if (stdoutBuffer.trim()) {
-        try {
-          events.push(JSON.parse(stdoutBuffer) as RpcEvent);
-        } catch {
-          // Ignore a trailing non-event line.
-        }
+        collectEvent(stdoutBuffer);
       }
 
       const promptFailure = events.find((event) => event.type === "response" && event.command === "prompt" && event.success === false);
