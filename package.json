@@ -1,7 +1,12 @@
 {
-  "name": "pi-ds-webapi",
+  "name": "@ribombalt/pi-deepseek-search-api",
   "version": "0.1.0",
   "description": "DeepSeek Search and Fetch tools for Pi",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RibomBalt/pi-deepseek-search-api.git"
+  },
   "packageManager": "pnpm@11.24.0",
   "type": "module",
   "files": [

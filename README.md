@@ -1,13 +1,19 @@
-# pi-ds-webapi
+# @ribombalt/pi-deepseek-search-api
 
 Pi package that adds two native tools backed by DeepSeek's Search and Fetch APIs: `deepseek_search` and `deepseek_fetch`.
 
 ## Install
 
-From a local checkout, install the package into Pi with:
+Install the published package into Pi with:
 
 ```sh
-pi install /path/to/pi-ds-webapi
+pi install npm:@ribombalt/pi-deepseek-search-api
+```
+
+To install from a local checkout instead:
+
+```sh
+pi install /path/to/pi-deepseek-search-api
 ```
 
 Pi resolves DeepSeek credentials through its existing provider configuration. Sign in with `/login deepseek` in Pi or use another credential source supported by Pi. This package does not read environment variables or Pi credential files itself. If Pi cannot provide a DeepSeek API key, the tool returns a `/login deepseek` hint.
