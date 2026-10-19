@@ -260,9 +260,9 @@ Expected: PASS.
 - Consumes: the built-in package extension path and the test script from Task 1.
 - Produces: an opt-in `test:integration` test that uses system `pi` and the current Pi profile to make real Search and Fetch calls through the registered tools.
 
-- [ ] **Step 1: Write the failing live subprocess integration test**
+- [x] **Step 1: Write the failing live subprocess integration test**
 
-The test locates `pi` on `PATH` and starts `pi --mode rpc --no-session --no-mcp --no-skills --tools deepseek_search,deepseek_fetch --extension <absolute extension path>` with the normal process environment and existing Pi configuration. Do not set `HOME`, `PI_CODING_AGENT_DIR`, `PI_OFFLINE`, or `--api-key`. Send one `prompt` RPC command instructing Pi to call `deepseek_search` exactly once with a fixed query, then `deepseek_fetch` exactly once with `https://example.com`, and use no other tools. Parse JSONL events through `agent_settled`; assert each requested tool has a `tool_execution_start` and a matching `tool_execution_end` with `isError: false`, and each result has non-empty text content. Enforce a bounded 120-second timeout, terminate the child on failure, and include sanitized stderr in failures. Pi is the only credential resolver; the test never reads or prints auth/model configuration files.
+The test locates `pi` on `PATH` and starts `pi --mode rpc --no-session --no-mcp --no-skills --no-extensions --tools deepseek_search,deepseek_fetch --extension <absolute extension path>` with the normal process environment and existing Pi model/provider configuration. `--no-extensions` prevents unrelated installed extensions from prompting the RPC client; the explicit package extension is still loaded. Do not set `HOME`, `PI_CODING_AGENT_DIR`, `PI_OFFLINE`, or `--api-key`. Send one `prompt` RPC command instructing Pi to call `deepseek_search` exactly once with a fixed query, then `deepseek_fetch` exactly once with `https://example.com`, and use no other tools. Parse JSONL events until the child exits; assert each requested tool has a `tool_execution_start` and a matching `tool_execution_end` with `isError: false`, and each result has non-empty text content. Enforce a bounded 120-second timeout, terminate the child on failure, and include sanitized stderr in failures. Pi is the only credential resolver; the test never reads or prints auth/model configuration files.
 
 Example command setup:
 
@@ -286,7 +286,7 @@ child.stdin.end();
 Run: `pnpm test:integration`
 Expected: PASS when system Pi has a usable selected model and Pi can resolve the DeepSeek provider credential. This run makes one real Search request and one real Fetch request, does not read credentials directly in test code, and may incur DeepSeek API charges. Missing Pi/model/provider configuration must fail with an actionable model or `/login deepseek` message; do not silently skip a failed live API call.
 
-- [ ] **Step 3: Review and tighten child process cleanup**
+- [x] **Step 3: Review and tighten child process cleanup**
 
 Ensure the test terminates the Pi child on assertion failure. Do not print child environment values, Pi configuration, provider credentials, request headers, or full process arguments beyond the non-secret extension path. A Pi startup or API failure may include sanitized stderr/error text, but must redact bearer-token-shaped strings and never read credential files to do so.
 
@@ -302,11 +302,11 @@ Ensure the test terminates the Pi child on assertion failure. Do not print child
 - README installation and use instructions match the package manifest and tool schemas.
 - `pnpm test` runs unit tests only; `pnpm test:integration` makes real DeepSeek calls through the current system Pi configuration; `pnpm typecheck` covers extension and tests.
 
-- [ ] **Step 1: Document installation, credentials, and tool behavior**
+- [x] **Step 1: Document installation, credentials, and tool behavior**
 
 Document installing the package in Pi, configuring DeepSeek through Pi's existing `/login deepseek` or supported provider credential sources, the two tools and their arguments, the 30,000-character Fetch cap, no retry behavior, and the fact that search terms/URLs are sent to DeepSeek. Include the local commands `pnpm test`, `pnpm test:integration`, and `pnpm typecheck`; state that integration test uses the current Pi profile, makes real DeepSeek calls, may be billable, and does not read credentials directly.
 
-- [ ] **Step 2: Run all unit tests and static checking**
+- [x] **Step 2: Run all unit tests and static checking**
 
 Run: `pnpm test`
 Expected: PASS for the full unit suite; no test uses external network.
@@ -317,7 +317,7 @@ Expected: PASS with strict TypeScript checks.
 - [ ] **Step 3: Run Pi integration and packaging checks**
 
 Run: `pnpm test:integration`
-Expected: PASS when system Pi, a usable model, and Pi-managed DeepSeek credentials are configured; otherwise fail with an actionable message. This command performs the real external API requests described in Task 4.
+Observed: `pnpm pack --dry-run` passes and includes both extension files plus README. The live command was attempted using system Pi/current configuration, but Pi generated no tool-execution events; it failed with an actionable tool-call support/authentication message before making either DeepSeek API request. Re-run this step after the current Pi profile produces calls to the registered tools.
 
 Run: `pnpm pack --dry-run`
 Expected: package includes `extensions/deepseek-web.ts`, `extensions/deepseek-client.ts`, and README; it does not include tests, local credentials, or `node_modules`.
@@ -335,5 +335,5 @@ Commit implementation with `feat: add DeepSeek Search and Fetch Pi tools` and do
 - **Credential boundary:** No test reads credential files or invokes `pi auth`; the live integration process uses Pi's existing configuration and normal provider resolution without explicitly passing API keys. Unit tests use only a clearly fake in-memory key and injected fetch.
 - **External API calls:** Unit tests use fake fetch and never access the network. The opt-in integration command submits one prompt through the configured model and intentionally makes real Search and Fetch API calls; it is separate from `pnpm test` and may be billable.
 - **Dependency policy:** Vitest and TypeScript are development-only. Dependency installation is blocked on the existing default-store permission behavior and must follow the global AGENTS approval rule; no `/tmp` store fallback is allowed.
-- **Review Focus:** Each listed failure mode has an owning task and explicit cases. The live integration checks actual tool selection/execution and DeepSeek API responses through Pi; deterministic schema and error boundaries remain covered by unit tests.
+- **Review Focus:** Each listed failure mode has an owning task and explicit cases. The live integration is designed to check actual tool selection/execution and DeepSeek API responses through Pi; this environment's run did not reach either tool, so live API behavior remains unverified. Deterministic schema and error boundaries are covered by unit tests.
 - **No placeholders:** The plan gives paths, interfaces, commands, expected outcomes, and behavior cases. The illustrative table-driven test uses the defined `search` and `fetchPage` methods directly; implementation supplies the shared `jsonResponse` fixture in the test file.

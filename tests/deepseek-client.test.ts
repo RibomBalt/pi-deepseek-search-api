@@ -120,6 +120,7 @@ describe("DeepSeek HTTP client", () => {
     expect(result).toContain("Relevance: 2.4");
     expect(result).toContain("Authority: 3");
     expect(result).toContain("Full page body");
+    expect(result).toContain("untrusted source material");
   });
 
   it("returns an explicit message for empty or missing Search results", async () => {
@@ -167,6 +168,7 @@ describe("DeepSeek HTTP client", () => {
     expect(result).toContain("Example article");
     expect(result).toContain("# Example article");
     expect(result).toContain("Article text.");
+    expect(result).toContain("untrusted source material");
   });
 
   it("preserves Fetch content at the 30,000-character limit", async () => {
@@ -247,6 +249,15 @@ describe("DeepSeek HTTP client", () => {
 
     expect(error).toMatch(/cancel/i);
     expect(error).not.toContain(TEST_KEY);
+  });
+
+  it("returns a cancellation error when reading the response body is aborted", async () => {
+    const response = jsonResponse({ results: [] });
+    vi.spyOn(response, "text").mockRejectedValue(new DOMException("The operation was aborted", "AbortError"));
+    const fakeFetch = vi.fn().mockResolvedValue(response);
+    const client = createDeepSeekClient(TEST_KEY, fakeFetch);
+
+    await expect(client.search({ query: "x" }, new AbortController().signal)).rejects.toThrow(/cancel/i);
   });
 
   it("redacts the API key if the server echoes it in an error message", async () => {

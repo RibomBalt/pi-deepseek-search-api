@@ -73,7 +73,12 @@ function validateFetch(args: FetchArgs): string | undefined {
 }
 
 async function getClient(ctx: { modelRegistry: { getApiKeyForProvider(provider: string): Promise<string | undefined> } }) {
-  const apiKey = await ctx.modelRegistry.getApiKeyForProvider("deepseek");
+  let apiKey: string | undefined;
+  try {
+    apiKey = await ctx.modelRegistry.getApiKeyForProvider("deepseek");
+  } catch {
+    throw new Error("Pi could not resolve DeepSeek credentials.");
+  }
   if (!apiKey) return undefined;
   return createDeepSeekClient(apiKey);
 }

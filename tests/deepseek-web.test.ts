@@ -110,6 +110,20 @@ describe("DeepSeek native tools", () => {
     expect(fakeFetch).not.toHaveBeenCalled();
   });
 
+  it("does not echo credential resolver exceptions", async () => {
+    const fakeFetch = vi.fn();
+    vi.stubGlobal("fetch", fakeFetch);
+    const getApiKeyForProvider = vi.fn().mockRejectedValue(new Error(`resolver failed: ${TEST_KEY}`));
+    const context = { modelRegistry: { getApiKeyForProvider } } as unknown as ExtensionToolContext;
+
+    const result = await getTool("deepseek_search").execute("resolver-error", { query: "pi" }, undefined, undefined, context);
+
+    expect(result.isError).toBe(true);
+    expect(resultText(result)).toContain("Pi could not resolve DeepSeek credentials");
+    expect(resultText(result)).not.toContain(TEST_KEY);
+    expect(fakeFetch).not.toHaveBeenCalled();
+  });
+
   it.each([
     ["one Unicode character", "雪", false],
     ["128 Unicode characters", "雪".repeat(128), false],
